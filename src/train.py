@@ -98,7 +98,7 @@ def compute_test():
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
     acc_test = accuracy(output[idx_test], labels[idx_test])
     print("Test set results:",
-          "loss= {:.4f}".format(loss_test.data[0]),
+          "loss= {}".format(loss_test.data[0]),
           "accuracy= {:.4f}".format(acc_test.data[0]))
 
 # Train model
@@ -142,3 +142,4 @@ model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
 
 # Testing
 compute_test()
+print('OK.')
