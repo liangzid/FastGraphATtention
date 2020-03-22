@@ -4,7 +4,11 @@ import torch
 
 
 def encode_onehot(labels):
+    '''
+    generate one-hot label
+    '''
     classes = set(labels)
+    # np.identity :创建单位方阵
     classes_dict = {c: np.identity(len(classes))[i, :] for i, c in enumerate(classes)}
     labels_onehot = np.array(list(map(classes_dict.get, labels)), dtype=np.int32)
     return labels_onehot
