@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-
+import math
 # self-define
 import lsh.lsh_mips as lsh
 
@@ -61,35 +61,42 @@ class LSHAttentionLayer(nn.Module):
     Simple GAT layer, similar to https://arxiv.org/abs/1710.10903
     """
 
-    def __init__(self, in_features, out_features, dropout, alpha,seed=3933 concat=True):
+    def __init__(self, in_features, out_features, dropout, alpha, concat=True):
         super(LSHAttentionLayer, self).__init__()
         self.dropout = dropout
         self.in_features = in_features
         self.out_features = out_features
         self.alpha = alpha
         self.concat = concat
-        self.seed=seed
+        # self.seed=seed
 
-        self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
-        nn.init.xavier_uniform_(self.W.data, gain=1.414) # one special init method,by  Bengio.
+        self.kW = nn.Parameter(torch.zeros(size=(in_features, out_features)))
+        nn.init.xavier_uniform_(self.kW.data, gain=1.414) # one special init method,by  Bengio.
+        
+        self.vW = nn.Parameter(torch.zeros(size=(in_features, out_features)))
+        nn.init.xavier_uniform_(self.vW.data, gain=1.414) # one special init method,by  Bengio.
+        
         self.a = nn.Parameter(torch.zeros(size=(2*out_features, 1)))
         nn.init.xavier_uniform_(self.a.data, gain=1.414)
 
         self.leakyrelu = nn.LeakyReLU(self.alpha)
 
     def forward(self, input, adj):
-        h = torch.mm(input, self.W) # mm -> matrix multiplication 
-        N,hiddenSize = h.shape
+        kh = torch.mm(input, self.kW) # mm -> matrix multiplication 
+        N,hiddenSize = kh.shape
 
+        vh =torch.mm(input,self.vW)
         # h.repeat(x,y,z) means expand x,y,z 倍 in each dimension respectivly.
         # shape of a_input: [N,N,2*8]
+        '''
         bucketSize=N//2
         rotations_rand=np.random.randn(hiddenSize,bucketSize//2)
         rota_vectors=np.dot(h,rotations_rand)
         rota_vectors=np.hstack([rota_vectors,-rota_vectors])
         buckets=np.argmax(rota_vectors,axis=-1)
-
-        K=torch.mm(h,h.T)
+        '''
+        K=torch.mm(kh,kh.T)
+        K=K/(math.sqrt(hiddenSize))
         # a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
         # print(type(a_input))
         # a_data=a_input.view(-1,2*self.out_features)
@@ -109,7 +116,7 @@ class LSHAttentionLayer(nn.Module):
         attention = torch.where(adj > 0, K, zero_vec) # which means if here exists a edge,use e' element,else: use zero_vec' element(not zero beacuse softmax next).
         attention = F.softmax(attention, dim=1)
         attention = F.dropout(attention, self.dropout, training=self.training)
-        h_prime = torch.matmul(attention, h)
+        h_prime = torch.matmul(attention,vh)
 
         if self.concat:
             return F.elu(h_prime) # avtivate or not.
