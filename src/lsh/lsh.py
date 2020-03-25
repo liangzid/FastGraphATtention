@@ -24,7 +24,7 @@ import random
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from operator import itemgetter
-from global_mgr import gol
+from lsh.global_mgr import gol
 
 import numpy as np
 

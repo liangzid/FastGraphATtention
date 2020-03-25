@@ -32,7 +32,7 @@ class GraphAttentionLayer(nn.Module):
 
         # h.repeat(x,y,z) means expand x,y,z 倍 in each dimension respectivly.
         a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
-        print("a_input shape:{}".format(a_input))
+        print("a_input shape:{}".format(a_input.shape))
         e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(2))
         # torch.matmul -> multiplication in tensors. (4,5,6)*(2,5) -> (4,2,6)
         # torch.squeeze() needs take the size 1 in tensor dimension out. : if the 2th dimension is size 1,then take it out.
@@ -79,9 +79,17 @@ class LSHAttentionLayer(nn.Module):
         N = h.size()[0]
 
         # h.repeat(x,y,z) means expand x,y,z 倍 in each dimension respectivly.
+        # shape of a_input: [N,N,2*8]
         a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
-        candidate=lsh.lsh_K_MIPS(K=10,L=2,datas=a_input,querys=self.a,num_neighbours=-1,rand_range=3,needInformation=False)
-        e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(2))
+        print(type(a_input))
+        a_data=a_input.view(-1,2*self.out_features)
+        candidate,index=lsh.lsh_K_MIPS(K=10,L=2,datas=a_data.cpu().detach().numpy().tolist(),
+        querys=self.a.cpu().detach().numpy().tolist(),
+        num_neighbours=-1,rand_range=3,needInformation=False)
+        x,_=a_input.shape
+        result=torch.ones(a_input.shape)*(-9e15)
+        result[index]=candidate.reshape(N,N,len(index))
+        e = self.leakyrelu(torch.matmul(result, self.a).squeeze(2))
         # torch.matmul -> multiplication in tensors. (4,5,6)*(2,5) -> (4,2,6)
         # torch.squeeze() needs take the size 1 in tensor dimension out. : if the 2th dimension is size 1,then take it out.
         

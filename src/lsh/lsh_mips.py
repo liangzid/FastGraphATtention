@@ -38,10 +38,10 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from operator import itemgetter
 
-from lsh import *
-from lsh_wrapper import *
-from lsh_tester import *
-from global_mgr import gol
+from lsh.lsh import *
+from lsh.lsh_wrapper import *
+from lsh.lsh_tester import *
+from lsh.global_mgr import gol
 
 def lsh_K_MIPS(K,L,datas,querys,num_neighbours=-1,rand_range=1,needInformation=False):
     '''
@@ -114,7 +114,7 @@ def lsh_K_MIPS(K,L,datas,querys,num_neighbours=-1,rand_range=1,needInformation=F
         all_vectors.append(vector)
         # print(vector.shape)
     
-    return all_vectors
+    return all_vectors,lsh_hits
     
     
 

@@ -25,8 +25,8 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from operator import itemgetter
 
-from lsh import *
-from lsh_wrapper import *
+from lsh.lsh import *
+from lsh.lsh_wrapper import *
 
 class LshTester():
     'LSH Test parameters'

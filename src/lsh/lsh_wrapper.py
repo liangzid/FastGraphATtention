@@ -23,9 +23,9 @@ import random
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from operator import itemgetter
-from global_mgr import gol
+from lsh.global_mgr import gol
 
-from lsh import *
+from lsh.lsh import *
 
 class LshWrapper:
     'LSH Wrapper'
@@ -72,8 +72,8 @@ class LshWrapper:
             return
 
     def resize(self, L):
-        if True == gol.get_value('DEBUG'):
-            print('LshWrapper resize:\tnew L: ' + str(L) + '\tL: ' + str(self.L) + '\tk: ' + str(self.k))
+       # if True == gol.get_value('DEBUG'):
+       #     print('LshWrapper resize:\tnew L: ' + str(L) + '\tL: ' + str(self.L) + '\tk: ' + str(self.k))
 
         # shrink the number of hash tables to be used
         if L < self.L:
@@ -83,12 +83,12 @@ class LshWrapper:
             hash_funcs = [[self.__creat_ht__() for h in range(self.k)] for l in range(self.L, L)]
             self.hash_tables.extend([(g, defaultdict(lambda:[])) for g in hash_funcs])
 
-            if True == gol.get_value('DEBUG'):
-                print('resize wrapper hashtable: ') 
-                for ht, ct in self.hash_tables:
-                    print('ht: ' + str(type(ht)) + '\tct: ' + str(type(ct))) 
-                    print( ht)
-                    print( ct)
+           # if True == gol.get_value('DEBUG'):
+           #     print('resize wrapper hashtable: ') 
+           #     for ht, ct in self.hash_tables:
+           #         print('ht: ' + str(type(ht)) + '\tct: ' + str(type(ct))) 
+           #         print( ht)
+           #         print( ct)
         self.L = L
 
     def hash(self, ht, data):

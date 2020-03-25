@@ -12,7 +12,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from utils import load_data, accuracy
-from model import GAT
+from model import GAT,FastGAT
 
 # Training settings
 parser = argparse.ArgumentParser()
@@ -28,7 +28,7 @@ parser.add_argument('--nb_heads', type=int, default=8, help='Number of head atte
 parser.add_argument('--dropout', type=float, default=0.6, help='Dropout rate (1 - keep probability).')
 parser.add_argument('--alpha', type=float, default=0.2, help='Alpha for the leaky_relu.')
 parser.add_argument('--patience', type=int, default=100, help='Patience')
-
+parser.add_argument('--fastGAT',type=int,default=0,help=' 1:using FastGAT, 0:GAT')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -41,16 +41,29 @@ if args.cuda:
 # Load data
 adj, features, labels, idx_train, idx_val, idx_test = load_data()
 
-# Model and optimizer
-model = GAT(nfeat=features.shape[1], 
-            nhid=args.hidden, 
-            nclass=int(labels.max()) + 1, 
-            dropout=args.dropout, 
-            nheads=args.nb_heads, 
-            alpha=args.alpha)
-optimizer = optim.Adam(model.parameters(), 
-                       lr=args.lr, 
-                       weight_decay=args.weight_decay)
+if args.fastGAT==0:
+    # Model and optimizer
+    model = GAT(nfeat=features.shape[1], 
+                nhid=args.hidden, 
+                nclass=int(labels.max()) + 1, 
+                dropout=args.dropout, 
+                nheads=args.nb_heads, 
+                alpha=args.alpha)
+    optimizer = optim.Adam(model.parameters(), 
+                        lr=args.lr, 
+                        weight_decay=args.weight_decay)
+else:
+    # Model and optimizer
+    model = FastGAT(nfeat=features.shape[1], 
+                nhid=args.hidden, 
+                nclass=int(labels.max()) + 1, 
+                dropout=args.dropout, 
+                nheads=args.nb_heads, 
+                alpha=args.alpha)
+    optimizer = optim.Adam(model.parameters(), 
+                        lr=args.lr, 
+                        weight_decay=args.weight_decay)
+
 
 if args.cuda:
     model.cuda()
