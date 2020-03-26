@@ -61,14 +61,18 @@ class LSHAttentionLayer(nn.Module):
     Simple GAT layer, similar to https://arxiv.org/abs/1710.10903
     """
 
-    def __init__(self, in_features, out_features, dropout, alpha, concat=True):
+    def __init__(self, in_features, out_features, dropout, alpha, concat=True,seed=3933):
         super(LSHAttentionLayer, self).__init__()
         self.dropout = dropout
         self.in_features = in_features
         self.out_features = out_features
         self.alpha = alpha
         self.concat = concat
-        # self.seed=seed
+        self.seed=seed
+        
+        # some infomation for LSH config
+        self.nHashTable=1
+        self.nbuckets=5
 
         self.kW = nn.Parameter(torch.zeros(size=(in_features, out_features)))
         nn.init.xavier_uniform_(self.kW.data, gain=1.414) # one special init method,by  Bengio.
@@ -88,14 +92,46 @@ class LSHAttentionLayer(nn.Module):
         vh =torch.mm(input,self.vW)
         # h.repeat(x,y,z) means expand x,y,z 倍 in each dimension respectivly.
         # shape of a_input: [N,N,2*8]
-        '''
-        bucketSize=N//2
-        rotations_rand=np.random.randn(hiddenSize,bucketSize//2)
-        rota_vectors=np.dot(h,rotations_rand)
-        rota_vectors=np.hstack([rota_vectors,-rota_vectors])
-        buckets=np.argmax(rota_vectors,axis=-1)
-        '''
-        K=torch.mm(kh,kh.T)
+        
+        nHashTable=1
+        bucketSize=4                                                  
+        rotations_rands=torch.randn(nHashTable,hiddenSize,bucketSize//2) #[nhashtable,hiddenSize,bucketSize//2]
+        rota_vectors=torch.matmul(1.0*kh,rotations_rands)                #[nhashtable,N,bucketsize//2]
+        rota_vectors=torch.cat([rota_vectors,-rota_vectors],-1)           #[nhashtable,N,bucketsize]
+        buckets=torch.argmax(rota_vectors,dim=2)                       #[nhashtable,N]
+        # print(buckets)
+
+        values,indexes=buckets.sort(dim =1)                              #[nhashtable]
+
+        # to x class
+        values=values.tolist()
+        indexes=indexes.tolist()
+        # print(indexes)
+        tempList=[]
+        indexList=[]
+
+        for i in range(bucketSize):
+            if i in values:
+                tempList.append(values.index(i))
+
+        for i in range(len(tempList)):
+            if i != len(tempList)-1:
+                indexList.append(indexes[tempList[i]:tempList[i+1]])
+            else:
+                indexList.append(indexes[tempList[i]:])
+        # print(indexList)
+        del tempList        
+        
+        K=-9e15*torch.ones((N,N))
+        for x in indexList:
+            K[x,x]=torch.mm(kh[x,:],kh[x,:].T)
+        # print(values,indexes)
+        # rotations_rand=np.random.randn(hiddenSize,bucketSize//2,seed=self.seed)
+        # rota_vectors=np.dot(h,rotations_rand)
+        # rota_vectors=np.hstack([rota_vectors,-rota_vectors])
+        # buckets=np.argmax(rota_vectors,axis=-1)
+        
+        # K=torch.mm(kh,kh.T)
         K=K/(math.sqrt(hiddenSize))
         # a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
         # print(type(a_input))
