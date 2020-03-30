@@ -3,6 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+import time
 # self-define
 import lsh.lsh_mips as lsh
 
@@ -80,51 +81,62 @@ class LSHAttentionLayer(nn.Module):
         self.vW = nn.Parameter(torch.zeros(size=(in_features, out_features)))
         nn.init.xavier_uniform_(self.vW.data, gain=1.414) # one special init method,by  Bengio.
         
-        self.a = nn.Parameter(torch.zeros(size=(2*out_features, 1)))
-        nn.init.xavier_uniform_(self.a.data, gain=1.414)
+        # self.a = nn.Parameter(torch.zeros(size=(2*out_features, 1)))
+        # nn.init.xavier_uniform_(self.a.data, gain=1.414)
 
         self.leakyrelu = nn.LeakyReLU(self.alpha)
 
     def forward(self, input, adj):
+        # t1=time.time()
         kh = torch.mm(input, self.kW) # mm -> matrix multiplication 
         N,hiddenSize = kh.shape
-
+        
+        # t2=time.time()
         vh =torch.mm(input,self.vW)
+        # t3=time.time()
         # h.repeat(x,y,z) means expand x,y,z 倍 in each dimension respectivly.
         # shape of a_input: [N,N,2*8]
         
+        # t4=time.time()
         nHashTable=1
         bucketSize=4                                                  
         rotations_rands=torch.randn(nHashTable,hiddenSize,bucketSize//2) #[nhashtable,hiddenSize,bucketSize//2]
+        # t5=time.time()
         rota_vectors=torch.matmul(1.0*kh,rotations_rands)                #[nhashtable,N,bucketsize//2]
+        # t6=time.time()
         rota_vectors=torch.cat([rota_vectors,-rota_vectors],-1)           #[nhashtable,N,bucketsize]
         buckets=torch.argmax(rota_vectors,dim=2)                       #[nhashtable,N]
         # print(buckets)
-
+        # t7=time.time()
+        #-------------------------------need to be optimalize-------------------------
         values,indexes=buckets.sort(dim =1)                              #[nhashtable]
-
+        #-----------------------------------------------------------------------------
+        # t8=time.time()
         # to x class
         values=values.tolist()
         indexes=indexes.tolist()
         # print(indexes)
+        # t9=time.time()
         tempList=[]
         indexList=[]
 
         for i in range(bucketSize):
             if i in values:
                 tempList.append(values.index(i))
-
+        # t11=time.time()
         for i in range(len(tempList)):
             if i != len(tempList)-1:
                 indexList.append(indexes[tempList[i]:tempList[i+1]])
             else:
                 indexList.append(indexes[tempList[i]:])
         # print(indexList)
+        # t12=time.time()
         del tempList        
-        
+        # t13=time.time()
         K=-9e15*torch.ones((N,N))
         for x in indexList:
-            K[x,x]=torch.mm(kh[x,:],kh[x,:].T)
+            K[x,x]=torch.mm(kh[x,:],kh[x,:].T)/sqrt(hiddenSize)
+        # t14=time.time()
         # print(values,indexes)
         # rotations_rand=np.random.randn(hiddenSize,bucketSize//2,seed=self.seed)
         # rota_vectors=np.dot(h,rotations_rand)
@@ -132,7 +144,9 @@ class LSHAttentionLayer(nn.Module):
         # buckets=np.argmax(rota_vectors,axis=-1)
         
         # K=torch.mm(kh,kh.T)
-        K=K/(math.sqrt(hiddenSize))
+        
+        # K=K/(math.sqrt(hiddenSize))
+        t15=time.time()
         # a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
         # print(type(a_input))
         # a_data=a_input.view(-1,2*self.out_features)
@@ -153,6 +167,22 @@ class LSHAttentionLayer(nn.Module):
         attention = F.softmax(attention, dim=1)
         attention = F.dropout(attention, self.dropout, training=self.training)
         h_prime = torch.matmul(attention,vh)
+
+        # print(t2-t1)
+        # print(t3-t2)
+        # print(t4-t3)
+        # print(t5-t4)
+        # print(t6-t5)
+        # print(t7-t6)
+        # print(t8-t7)
+        # print(t9-t8)
+        # print(t11-t9)
+        # print(t12-t11)
+        # print(t13-t12)
+        # print(t14-t13)
+        # print(t15-t14)
+        # # print(t16-t15)
+        # # print(t17-t16)
 
         if self.concat:
             return F.elu(h_prime) # avtivate or not.
