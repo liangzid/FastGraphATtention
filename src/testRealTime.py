@@ -41,14 +41,17 @@ if args.cuda:
 # Load s-data
 f,a,l=read()
 features=torch.FloatTensor(f[0])
-# print(features.shape)
+print(features.shape)
 adj=torch.FloatTensor(a[0])
+del f
+del a
 x,_=adj.shape
+# print(x)
 
-labels=torch.randint(0,5,(10000,))
-idx_train =torch.LongTensor(range(1000)) 
-idx_val =torch.LongTensor(range(1000, 5000)) 
-idx_test =torch.LongTensor(range(5000, 10000)) 
+labels=torch.randint(0,5,(x,))
+idx_train =torch.LongTensor(range(int(0.1*x))) 
+idx_val =torch.LongTensor(range(int(0.1*x), int(0.5*x))) 
+idx_test =torch.LongTensor(range(int(0.5*x), x)) 
 
 # adj = torch.FloatTensor(np.array(adj.todense()))
 # features = torch.FloatTensor(np.array(features.todense()))
@@ -60,7 +63,7 @@ idx_test =torch.LongTensor(range(5000, 10000))
 
 # adj, features, labels, idx_train, idx_val, idx_test = load_data()
 
-print(labels)
+# print(labels)
 
 if args.fastGAT==0:
     # Model and optimizer
@@ -75,13 +78,25 @@ if args.fastGAT==0:
                         weight_decay=args.weight_decay)
 else:
     # Model and optimizer
-    model = FastGAT(nfeat=features.shape[1], 
+    if args.cuda:
+        model = FastGAT(nfeat=features.shape[1], 
+                    nhid=args.hidden, 
+                    nclass=int(labels.max()) + 1, 
+                    dropout=args.dropout, 
+                    nheads=args.nb_heads, 
+                    alpha=args.alpha)
+        optimizer = optim.Adam(model.parameters(), 
+                            lr=args.lr, 
+                            weight_decay=args.weight_decay)
+    else:
+        model = FastGAT(nfeat=features.shape[1], 
                 nhid=args.hidden, 
                 nclass=int(labels.max()) + 1, 
                 dropout=args.dropout, 
                 nheads=args.nb_heads, 
-                alpha=args.alpha)
-    optimizer = optim.Adam(model.parameters(), 
+                alpha=args.alpha,
+                cuda=False)
+        optimizer = optim.Adam(model.parameters(), 
                         lr=args.lr, 
                         weight_decay=args.weight_decay)
 

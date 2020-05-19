@@ -14,6 +14,8 @@ from torch.autograd import Variable
 from utils import load_data, accuracy
 from model import GAT,FastGAT
 
+# from torchsummary import summary
+
 # Training settings
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-cuda', action='store_true', default=False, help='Disables CUDA training.')
@@ -75,6 +77,12 @@ if args.cuda:
     idx_test = idx_test.cuda()
 
 features, adj, labels = Variable(features), Variable(adj), Variable(labels)
+
+# print(features.shape)
+# print(adj.shape)
+# summary(model,[(2708,1433),(2708,2708)])
+
+
 
 
 def train(epoch):
@@ -156,4 +164,6 @@ model.load_state_dict(torch.load(('{}'+save_name).format(best_epoch)))
 
 # Testing
 compute_test()
+# print(loss_values)
+
 print('OK.')

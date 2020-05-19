@@ -24,21 +24,21 @@ class GAT(nn.Module):
         return F.log_softmax(x, dim=1)
 
 class FastGAT(nn.Module):
-    def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads):
+    def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads,cuda=True):
         super(FastGAT, self).__init__()
         self.dropout = dropout
         self.layernorm=nn.LayerNorm(nhid*nheads)
 
-        self.attention1 = [LSHAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha, concat=True) for _ in range(nheads)]
+        self.attention1 = [LSHAttentionLayer(nfeat, nhid, dropout=dropout, alpha=alpha,cuda=cuda, concat=True) for _ in range(nheads)]
         for i, attention in enumerate(self.attention1):
             self.add_module('attention1_{}'.format(i), attention)
-        self.inter_att=LSHAttentionLayer(nhid*nheads,nfeat,dropout=dropout,alpha=alpha,concat=False)
+        self.inter_att=LSHAttentionLayer(nhid*nheads,nfeat,dropout=dropout,alpha=alpha,concat=False,cuda=cuda)
         #'''
-        self.attention2 = [LSHAttentionLayer(nhid*nheads, nhid, dropout=dropout, alpha=alpha, concat=True) for _ in range(nheads)]
+        self.attention2 = [LSHAttentionLayer(nhid*nheads, nhid, dropout=dropout, alpha=alpha,cuda=cuda, concat=True) for _ in range(nheads)]
         for i, attention in enumerate(self.attention2):
             self.add_module('attention2_{}'.format(i), attention)
         #'''
-        self.out_att = LSHAttentionLayer(nhid * nheads, nclass, dropout=dropout, alpha=alpha, concat=False)
+        self.out_att = LSHAttentionLayer(nhid * nheads, nclass, dropout=dropout, alpha=alpha, concat=False,cuda=cuda)
 
     def forward(self,x,adj):
         x = F.dropout(x, self.dropout, training=self.training)

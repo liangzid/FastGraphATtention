@@ -29,7 +29,7 @@ def generate(num=50,Nmin=10,Nmax=100):
         i=0
         print(graphs[0])
         # features=graphs[i].in_degrees().float().view(-1,1)
-        features=np.random.randint(0,10,(10000,2000)).astype(float)
+        features=np.random.randint(0,10,(Nmin,2000)).astype(float)
         # print(features.shape)
         np.save(path+'sdata_feature_{}.npy'.format(i),features)
         np.save(path+'sdata_adj_{}.npy'.format(i),adj[i])
@@ -106,7 +106,7 @@ def read():
     # file.close()
 
 if __name__=="__main__":
-    generate(num=1,Nmin=10000,Nmax=10001)
+    generate(num=1,Nmin=20000,Nmax=20001)
     # generate()
     
 
